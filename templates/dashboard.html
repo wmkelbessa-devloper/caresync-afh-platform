@@ -287,5 +287,20 @@
             </div>
         </div>
 
+
+        {% if not residents %}
+        <div class="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <p class="text-sm font-semibold text-blue-950">Start with Oregon AFH Sample Data</p>
+                <p class="text-xs text-blue-800">Populate sample residents, eMAR entries, an abnormal BP alert, shift notes, appointments, behavior logs, and physician forms.</p>
+            </div>
+            <form action="/seed_demo_data" method="POST">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition">
+                    Load Sample Data
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
 </body>
 </html>

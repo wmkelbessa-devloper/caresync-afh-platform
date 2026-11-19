@@ -476,6 +476,56 @@ def export_pdf():
     return send_file(buffer, as_attachment=True, download_name=f"AFH_Compliance_Report_{target_date}.pdf", mimetype="application/pdf")
 
 
+@app.route("/seed_demo_data", methods=["POST"])
+def seed_demo_data():
+    with get_db() as conn:
+        existing = conn.execute("SELECT COUNT(*) AS cnt FROM residents").fetchone()["cnt"]
+        if existing == 0:
+            conn.executemany(
+                "INSERT INTO residents (name, room_number, care_level, allergies) VALUES (?, ?, ?, ?)",
+                [
+                    ("Arthur Pendelton", "101", "Level 2", "Penicillin"),
+                    ("Eleanor Vance", "102", "Level 3", "NKDA"),
+                    ("Harold Jenkins", "104", "Level 1", "Sulfa"),
+                ]
+            )
+            res_rows = conn.execute("SELECT id, name FROM residents").fetchall()
+            res_map = {r["name"]: r["id"] for r in res_rows}
+
+            conn.executemany(
+                "INSERT INTO emar_logs (resident_id, medication, dosage, administered_by, timestamp, status) VALUES (?, ?, ?, ?, ?, ?)",
+                [
+                    (res_map["Arthur Pendelton"], "Lisinopril", "10 mg PO", "M. Rivera, CNA", "08:15 AM • Today", "Administered"),
+                    (res_map["Eleanor Vance"], "Memantine", "10 mg PO", "M. Rivera, CNA", "08:30 AM • Today", "Administered"),
+                ]
+            )
+            conn.executemany(
+                "INSERT INTO vitals (resident_id, systolic, diastolic, heart_rate, timestamp, is_abnormal) VALUES (?, ?, ?, ?, ?, ?)",
+                [
+                    (res_map["Arthur Pendelton"], 154, 92, 78, "08:20 AM", 1),
+                    (res_map["Harold Jenkins"], 122, 76, 68, "08:40 AM", 0),
+                ]
+            )
+            conn.execute(
+                "INSERT INTO shift_notes (shift_window, author_name, note_text, timestamp) VALUES (?, ?, ?, ?)",
+                ("Day Shift", "M. Rivera, CNA", "Morning meds completed on time; BP recheck scheduled for Arthur in Room 101.", "09:00 AM • Today")
+            )
+            conn.execute(
+                "INSERT INTO appointments (resident_id, provider_name, clinic_location, appt_date, appt_time, notes) VALUES (?, ?, ?, ?, ?, ?)",
+                (res_map["Eleanor Vance"], "Dr. Sarah Chen, MD", "Oregon Geriatrics Clinic, Portland", "2026-12-03", "10:30", "Bring current med sheet and behavior log.")
+            )
+            conn.execute(
+                "INSERT INTO behavior_logs (resident_id, behavior_type, severity, trigger_notes, intervention, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+                (res_map["Eleanor Vance"], "Late-Afternoon Restlessness", "Moderate", "Pacing near front door around 4:30 PM", "Guided to quiet lounge with warm tea and music; settled in 15 mins.", "04:40 PM • Yesterday")
+            )
+            conn.execute(
+                "INSERT INTO physician_forms (resident_id, form_title, provider_name, due_date, status, notes) VALUES (?, ?, ?, ?, ?, ?)",
+                (res_map["Arthur Pendelton"], "Annual Physician Assessment & Orders", "Dr. David Morales, MD", "2026-12-15", "Sent to Provider", "Faxed to clinic; awaiting signed return.")
+            )
+            conn.commit()
+    return redirect(url_for("dashboard"))
+
+
 if __name__ == "__main__":
     init_db()
     app.run(debug=True, port=5000)
