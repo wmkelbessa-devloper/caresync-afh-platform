@@ -1,0 +1,5 @@
+.venv/
+__pycache__/
+*.pyc
+afh_web.db
+.DS_Store

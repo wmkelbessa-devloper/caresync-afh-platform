@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareSync AFH — Residential Care & eMAR Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+    <nav class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between sticky top-0 z-10">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">+</div>
+            <div>
+                <span class="font-bold text-lg text-slate-900 tracking-tight">CareSync AFH</span>
+                <span class="ml-2 text-xs font-medium bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200">Oregon DHS Compliant</span>
+            </div>
+        </div>
+        <a href="/" class="text-sm font-medium text-slate-600 hover:text-slate-900 px-3 py-2">Landing Page</a>
+            <a href="/export_pdf" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-sm transition">Export Compliance PDF</a>
+    </nav>
+    <main class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-emerald-600">{{ today_display }}</p>
+                <h1 class="text-2xl font-bold text-slate-900 mt-1">Good afternoon, Care Team!</h1>
+                <p class="text-sm text-slate-500 mt-0.5">Active Facility: Evergreen Adult Foster Home • Oregon</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex space-x-4">
+                <div class="bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-center">
+                    <span class="block text-xl font-bold text-slate-900">{{ residents|length }}</span>
+                    <span class="text-xs text-slate-500">Active Residents</span>
+                </div>
+                <div class="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2 text-center">
+                    <span class="block text-xl font-bold text-emerald-700">{{ emar_logs|length }}</span>
+                    <span class="text-xs text-emerald-700">Meds Logged</span>
+                </div>
+            </div>
+        </div>
+        {% if alerts %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for alert in alerts %}
+            <div class="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-4 shadow-sm">
+                <span class="text-xs font-bold uppercase text-amber-800 bg-amber-200 px-2 py-0.5 rounded">Abnormal Vital Detected</span>
+                <p class="text-sm font-semibold text-slate-900 mt-1">BP {{ alert["systolic"] }}/{{ alert["diastolic"] }} mmHg • {{ alert["resident_name"] }} (Room {{ alert["room_number"] }})</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                <h2 class="text-base font-bold text-slate-900 mb-4">Administer Medication (eMAR)</h2>
+                <form action="/log_medication" method="POST" class="space-y-3">
+                    <select name="resident_id" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white">
+                        <option value="">Select resident...</option>
+                        {% for r in residents %}
+                        <option value="{{ r['id'] }}">Rm {{ r['room_number'] }} — {{ r['name'] }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" name="medication" placeholder="Medication" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                        <input type="text" name="dosage" placeholder="Dosage (e.g., 10mg)" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <input type="text" name="administered_by" placeholder="Caregiver Name" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm py-2.5 rounded-lg">Record Medication</button>
+                </form>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                <h2 class="text-base font-bold text-slate-900 mb-4">Vital Signs Check</h2>
+                <form action="/log_vitals" method="POST" class="space-y-3">
+                    <select name="resident_id" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white">
+                        <option value="">Select resident...</option>
+                        {% for r in residents %}
+                        <option value="{{ r['id'] }}">Rm {{ r['room_number'] }} — {{ r['name'] }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="grid grid-cols-3 gap-2">
+                        <input type="number" name="systolic" placeholder="Systolic" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                        <input type="number" name="diastolic" placeholder="Diastolic" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                        <input type="number" name="heart_rate" placeholder="Pulse" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium text-sm py-2.5 rounded-lg">Save Vitals</button>
+                </form>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                <h2 class="text-base font-bold text-slate-900 mb-4">Register New Resident</h2>
+                <form action="/add_resident" method="POST" class="space-y-3">
+                    <div class="grid grid-cols-3 gap-2">
+                        <input type="text" name="name" placeholder="Full Name" required class="col-span-2 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                        <input type="text" name="room_number" placeholder="Room #" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <select name="care_level" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white">
+                            <option>Level 1</option>
+                            <option selected>Level 2</option>
+                            <option>Level 3</option>
+                        </select>
+                        <input type="text" name="allergies" placeholder="Allergies (NKDA)" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm py-2.5 rounded-lg">Admit Resident</button>
+                </form>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                <h2 class="text-base font-bold text-slate-900 mb-4">Resident Census</h2>
+                <div class="divide-y divide-slate-100">
+                    {% for r in residents %}
+                    <div class="py-3 flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-slate-900">{{ r["name"] }}</p>
+                            <p class="text-xs text-slate-500">Room {{ r["room_number"] }} • Allergies: {{ r["allergies"] }}</p>
+                        </div>
+                        <span class="text-xs font-medium bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full">{{ r["care_level"] }}</span>
+                    </div>
+                    {% else %}
+                    <p class="text-sm text-slate-400 py-4">No residents admitted yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                <h2 class="text-base font-bold text-slate-900 mb-4">Recent eMAR Entries</h2>
+                <div class="space-y-3">
+                    {% for log in emar_logs %}
+                    <div class="p-3 rounded-lg bg-emerald-50/60 border border-emerald-200 flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-bold text-slate-900">{{ log["medication"] }} ({{ log["dosage"] }})</p>
+                            <p class="text-xs text-slate-600">{{ log["resident_name"] }} (Rm {{ log["room_number"] }}) • {{ log["administered_by"] }}</p>
+                        </div>
+                        <span class="text-xs font-medium text-emerald-700">{{ log["timestamp"] }}</span>
+                    </div>
+                    {% else %}
+                    <p class="text-sm text-slate-400 py-4">No medications recorded yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
