@@ -539,6 +539,20 @@ def discharge_resident(resident_id):
     return redirect(url_for("dashboard"))
 
 
+@app.route("/reset_demo_data", methods=["POST"])
+def reset_demo_data():
+    with get_db() as conn:
+        conn.execute("DELETE FROM emar_logs")
+        conn.execute("DELETE FROM vitals")
+        conn.execute("DELETE FROM shift_notes")
+        conn.execute("DELETE FROM appointments")
+        conn.execute("DELETE FROM behavior_logs")
+        conn.execute("DELETE FROM physician_forms")
+        conn.execute("DELETE FROM residents")
+        conn.commit()
+    return redirect(url_for("dashboard"))
+
+
 if __name__ == "__main__":
     init_db()
     app.run(debug=True, port=5000)
