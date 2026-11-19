@@ -135,5 +135,157 @@
             </div>
         </div>
     </main>
+
+        <!-- Doctor Appointments + Calendar Sync -->
+        <div class="mt-6 bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <h2 class="text-base font-bold text-slate-900">Doctor Appointments &amp; Calendar Sync</h2>
+                <span class="text-xs text-slate-500">Download .ics to add directly to Google Calendar</span>
+            </div>
+            <form action="/add_appointment" method="POST" class="grid grid-cols-1 md:grid-cols-6 gap-3 mb-5">
+                <select name="resident_id" required class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white">
+                    <option value="">Select resident...</option>
+                    {% for r in residents %}
+                        <option value="{{ r.id }}">{{ r.name }} (Rm {{ r.room_number }})</option>
+                    {% endfor %}
+                </select>
+                <input type="text" name="provider_name" placeholder="Doctor / Provider" required class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                <input type="text" name="clinic_location" placeholder="Clinic / Address" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                <input type="date" name="appt_date" required class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                <input type="time" name="appt_time" value="09:00" required class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                <input type="text" name="notes" placeholder="Calendar note / prep..." class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                <div class="md:col-span-6 flex justify-end">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+                        Schedule Appointment
+                    </button>
+                </div>
+            </form>
+
+            {% if appointments %}
+                <div class="space-y-2.5 border-t border-slate-100 pt-4">
+                    {% for appt in appointments %}
+                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <p class="text-sm font-semibold text-slate-900">
+                                    {{ appt.appt_date }} at {{ appt.appt_time }} — {{ appt.resident_name }} (Room {{ appt.room_number }})
+                                </p>
+                                <p class="text-xs text-slate-600 mt-0.5">
+                                    Provider: {{ appt.provider_name }} • Location: {{ appt.clinic_location }}
+                                    {% if appt.notes %} • Note: {{ appt.notes }}{% endif %}
+                                </p>
+                            </div>
+                            <a href="/appointment_ics/{{ appt.id }}" class="text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition">
+                                + Google Calendar (.ics)
+                            </a>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-sm text-slate-500">No upcoming doctor appointments scheduled.</p>
+            {% endif %}
+        </div>
+
+        <!-- Behavior Tracking & Physician Forms Grid -->
+        <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Behavior Tracking -->
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <h2 class="text-base font-bold text-slate-900 mb-4">Behavior Tracking Log</h2>
+                <form action="/log_behavior" method="POST" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+                    <select name="resident_id" required class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white">
+                        <option value="">Select resident...</option>
+                        {% for r in residents %}
+                            <option value="{{ r.id }}">{{ r.name }} (Rm {{ r.room_number }})</option>
+                        {% endfor %}
+                    </select>
+                    <select name="severity" class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white">
+                        <option value="Mild">Mild</option>
+                        <option value="Moderate" selected>Moderate</option>
+                        <option value="High">High</option>
+                    </select>
+                    <input type="text" name="behavior_type" placeholder="Behavior (e.g., Sundowning, Wandering)" required class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                    <input type="text" name="trigger_notes" placeholder="Possible trigger / antecedent" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                    <input type="text" name="intervention" placeholder="Caregiver intervention / outcome" class="sm:col-span-2 border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                    <div class="sm:col-span-2 flex justify-end">
+                        <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+                            Record Behavior
+                        </button>
+                    </div>
+                </form>
+
+                {% if behavior_logs %}
+                    <div class="space-y-2.5 border-t border-slate-100 pt-4">
+                        {% for b in behavior_logs %}
+                            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                                <div class="flex items-center justify-between text-xs text-slate-500 mb-1">
+                                    <span class="font-semibold text-slate-800">{{ b.resident_name }} (Rm {{ b.room_number }}) • {{ b.behavior_type }} [{{ b.severity }}]</span>
+                                    <span>{{ b.timestamp }}</span>
+                                </div>
+                                {% if b.trigger_notes %}<p class="text-xs text-slate-600">Trigger: {{ b.trigger_notes }}</p>{% endif %}
+                                {% if b.intervention %}<p class="text-xs text-slate-700 mt-0.5">Response: {{ b.intervention }}</p>{% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-sm text-slate-500">No behavior entries recorded yet.</p>
+                {% endif %}
+            </div>
+
+            <!-- Physician Forms & Orders -->
+            <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <h2 class="text-base font-bold text-slate-900 mb-4">Physician Forms &amp; Orders</h2>
+                <form action="/add_physician_form" method="POST" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+                    <select name="resident_id" required class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white">
+                        <option value="">Select resident...</option>
+                        {% for r in residents %}
+                            <option value="{{ r.id }}">{{ r.name }} (Rm {{ r.room_number }})</option>
+                        {% endfor %}
+                    </select>
+                    <select name="status" class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white">
+                        <option value="Needed">Needed</option>
+                        <option value="Sent to Provider">Sent to Provider</option>
+                        <option value="Signed / On File">Signed / On File</option>
+                    </select>
+                    <input type="text" name="form_title" placeholder="Form / Order (e.g., Annual Medical, POLST)" required class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                    <input type="text" name="provider_name" placeholder="Ordering Physician" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                    <input type="date" name="due_date" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                    <input type="text" name="notes" placeholder="Follow-up or signature notes" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                    <div class="sm:col-span-2 flex justify-end">
+                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+                            Track Form
+                        </button>
+                    </div>
+                </form>
+
+                {% if physician_forms %}
+                    <div class="space-y-2.5 border-t border-slate-100 pt-4">
+                        {% for f in physician_forms %}
+                            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                    <p class="text-sm font-semibold text-slate-900">{{ f.form_title }} — {{ f.resident_name }} (Rm {{ f.room_number }})</p>
+                                    <p class="text-xs text-slate-600">
+                                        Provider: {{ f.provider_name }}
+                                        {% if f.due_date %} • Due: {{ f.due_date }}{% endif %}
+                                        {% if f.notes %} • {{ f.notes }}{% endif %}
+                                    </p>
+                                </div>
+                                <form action="/update_form_status/{{ f.id }}" method="POST" class="flex items-center space-x-1.5">
+                                    <select name="status" class="border border-slate-300 rounded px-2 py-1 text-xs bg-white">
+                                        <option value="Needed" {% if f.status == "Needed" %}selected{% endif %}>Needed</option>
+                                        <option value="Sent to Provider" {% if f.status == "Sent to Provider" %}selected{% endif %}>Sent to Provider</option>
+                                        <option value="Signed / On File" {% if f.status == "Signed / On File" %}selected{% endif %}>Signed / On File</option>
+                                    </select>
+                                    <button type="submit" class="text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white px-2.5 py-1 rounded">
+                                        Update
+                                    </button>
+                                </form>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-sm text-slate-500">No physician forms tracked yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
 </body>
 </html>
