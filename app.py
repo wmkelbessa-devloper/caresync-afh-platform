@@ -526,6 +526,19 @@ def seed_demo_data():
     return redirect(url_for("dashboard"))
 
 
+@app.route("/discharge_resident/<int:resident_id>", methods=["POST"])
+def discharge_resident(resident_id):
+    with get_db() as conn:
+        conn.execute("DELETE FROM emar_logs WHERE resident_id = ?", (resident_id,))
+        conn.execute("DELETE FROM vitals WHERE resident_id = ?", (resident_id,))
+        conn.execute("DELETE FROM appointments WHERE resident_id = ?", (resident_id,))
+        conn.execute("DELETE FROM behavior_logs WHERE resident_id = ?", (resident_id,))
+        conn.execute("DELETE FROM physician_forms WHERE resident_id = ?", (resident_id,))
+        conn.execute("DELETE FROM residents WHERE id = ?", (resident_id,))
+        conn.commit()
+    return redirect(url_for("dashboard"))
+
+
 if __name__ == "__main__":
     init_db()
     app.run(debug=True, port=5000)
