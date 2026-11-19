@@ -19,7 +19,7 @@ def get_db():
 
 def init_db():
     with get_db() as conn:
-        conn.execute('''
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS residents (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
@@ -27,8 +27,8 @@ def init_db():
                 care_level TEXT,
                 allergies TEXT
             )
-        ''')
-        conn.execute('''
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS emar_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 resident_id INTEGER,
@@ -39,8 +39,8 @@ def init_db():
                 status TEXT DEFAULT 'Administered',
                 FOREIGN KEY(resident_id) REFERENCES residents(id)
             )
-        ''')
-        conn.execute('''
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS vitals (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 resident_id INTEGER,
@@ -51,7 +51,16 @@ def init_db():
                 is_abnormal INTEGER DEFAULT 0,
                 FOREIGN KEY(resident_id) REFERENCES residents(id)
             )
-        ''')
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS shift_notes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                shift_window TEXT NOT NULL,
+                author_name TEXT NOT NULL,
+                note_text TEXT NOT NULL,
+                timestamp TEXT NOT NULL
+            )
+        """)
         conn.commit()
 
 
@@ -64,19 +73,22 @@ def home():
 def dashboard():
     with get_db() as conn:
         residents = conn.execute("SELECT * FROM residents ORDER BY room_number ASC").fetchall()
-        emar_logs = conn.execute('''
+        emar_logs = conn.execute("""
             SELECT e.*, r.name AS resident_name, r.room_number
             FROM emar_logs e
             JOIN residents r ON e.resident_id = r.id
             ORDER BY e.id DESC LIMIT 10
-        ''').fetchall()
-        alerts = conn.execute('''
+        """).fetchall()
+        alerts = conn.execute("""
             SELECT v.*, r.name AS resident_name, r.room_number
             FROM vitals v
             JOIN residents r ON v.resident_id = r.id
             WHERE v.is_abnormal = 1
             ORDER BY v.id DESC LIMIT 5
-        ''').fetchall()
+        """).fetchall()
+        shift_notes = conn.execute("""
+            SELECT * FROM shift_notes ORDER BY id DESC LIMIT 6
+        """).fetchall()
 
     today_display = datetime.now().strftime("%A, %b %d, %Y")
     return render_template(
@@ -84,6 +96,7 @@ def dashboard():
         residents=residents,
         emar_logs=emar_logs,
         alerts=alerts,
+        shift_notes=shift_notes,
         today_display=today_display
     )
 
@@ -143,6 +156,23 @@ def log_vitals():
     return redirect(url_for("dashboard"))
 
 
+@app.route("/log_shift_note", methods=["POST"])
+def log_shift_note():
+    shift_window = request.form.get("shift_window", "Day Shift").strip()
+    author_name = request.form.get("author_name", "Caregiver").strip() or "Caregiver"
+    note_text = request.form.get("note_text", "").strip()
+    timestamp = datetime.now().strftime("%I:%M %p • %Y-%m-%d")
+
+    if note_text:
+        with get_db() as conn:
+            conn.execute(
+                "INSERT INTO shift_notes (shift_window, author_name, note_text, timestamp) VALUES (?, ?, ?, ?)",
+                (shift_window, author_name, note_text, timestamp)
+            )
+            conn.commit()
+    return redirect(url_for("dashboard"))
+
+
 @app.route("/export_pdf")
 def export_pdf():
     target_date = datetime.now().strftime("%Y-%m-%d")
@@ -155,12 +185,17 @@ def export_pdf():
     elements.append(Spacer(1, 12))
 
     with get_db() as conn:
-        logs = conn.execute('''
+        logs = conn.execute("""
             SELECT r.name, r.room_number, e.medication, e.dosage, e.administered_by, e.timestamp
             FROM emar_logs e
             JOIN residents r ON e.resident_id = r.id
             ORDER BY e.id DESC
-        ''').fetchall()
+        """).fetchall()
+        notes = conn.execute("""
+            SELECT shift_window, author_name, note_text, timestamp
+            FROM shift_notes
+            ORDER BY id DESC
+        """).fetchall()
 
     table_data = [["Resident", "Room", "Medication", "Dosage", "Caregiver", "Time Recorded"]]
     for row in logs:
@@ -179,6 +214,21 @@ def export_pdf():
         ("PADDING", (0, 0), (-1, -1), 6),
     ]))
     elements.append(table)
+
+    elements.append(Spacer(1, 18))
+    elements.append(Paragraph("Caregiver Shift Notes", styles["Heading2"]))
+    elements.append(Spacer(1, 8))
+
+    if notes:
+        for n in notes:
+            elements.append(Paragraph(
+                f"<b>{n['shift_window']}</b> — {n['author_name']} ({n['timestamp']}): {n['note_text']}",
+                styles["Normal"]
+            ))
+            elements.append(Spacer(1, 6))
+    else:
+        elements.append(Paragraph("No shift notes recorded for today.", styles["Normal"]))
+
     doc.build(elements)
     buffer.seek(0)
 
